@@ -3,7 +3,7 @@ import random
 
 import numpy as np
 import matplotlib as mpl
-from typing import List
+from typing import List, Tuple, Union
 
 __all__ = ['set_seed', 'set_mpl', 'double_ended_to_edgelist']
 
@@ -25,7 +25,7 @@ def set_mpl():
     mpl.rc('axes', linewidth=1, edgecolor="#222222", labelcolor="#222222")
     mpl.rc('text', usetex=False, color="#222222")
 
-def double_ended_to_edgelist(mat: np.ndarray) -> np.ndarray:
+def double_ended_to_edgelist(mat: List[List[List]]) -> List[Tuple[int,int]]:
     # Ensure the matrix is in the expected shape (2, N)
     # assert mat.shape[0] == 2, "Matrix should have 2 rows"
 
@@ -43,17 +43,21 @@ def double_ended_to_edgelist(mat: np.ndarray) -> np.ndarray:
     for i in unique_values:
         outbound_nodes.append((i, 1))
         inbound_nodes.append((i, 2))
-    all_nodes = inbound_nodes + outbound_nodes
 
     # Convert back to numpy array if needed
     extended_mat = [outbound_nodes, inbound_nodes]
 
     # convert unique tuples into unique integers in the edge_list
+    return node_tuples_index_to_int(extended_mat)
+
+def node_tuples_index_to_int(extended_mat: List[List[Tuple[int,int]]], cols: int = 0) -> List[Tuple[int,int]]:
+    all_nodes = extended_mat[0] + extended_mat[1]
     unique_nodes = set(node for node in all_nodes)
-    unique_tuples = {node: i for i, node in enumerate(unique_nodes)}
+    if cols != 0:
+        unique_tuples = {node: node[0]*cols + node[1] + 1 for node in unique_nodes}
+    else:
+        unique_tuples = {node: i for i, node in enumerate(unique_nodes)}
     indexed_edgelist = [[unique_tuples[node] for node in extended_mat[0]],
                         [unique_tuples[node] for node in extended_mat[1]]]
-    indexed_edgelist = list(zip(*indexed_edgelist))
-
-    return indexed_edgelist
+    return list(zip(*indexed_edgelist))
 

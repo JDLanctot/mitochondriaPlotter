@@ -9,7 +9,7 @@ from simple_parsing import field, ArgumentParser
 from scipy.io import loadmat, savemat
 
 # from mitochondriaplotter.params import HyperParams
-from mitochondriaplotter.plot import plot_network_from_edgelist, plot_lattice_from_edgelist
+from mitochondriaplotter.plot import plot_network_from_edgelist, plot_lattice_from_edgelist, gen_lattice
 from mitochondriaplotter.util import set_seed, double_ended_to_edgelist
 import shutil
 
@@ -17,10 +17,10 @@ import shutil
 class Options:
     """ options """
     # save file name
-    save_name: str = field(alias='-n', required=True)
+    file_name: str = field(alias='-f', required=True)
 
     # data file name
-    load_name: str = field(alias='-d', required=True)
+    load_name: str = field(alias='-l', required=True)
 
     # .yml file containing HyperParams
     # config_file: str = field(alias='-c', required=True)
@@ -34,8 +34,19 @@ class Options:
     # random seed
     seed: int = field(alias='-s', default=None, required=False)
 
+    # Size of a lattice
+    lattice_size: Tuple[int,int] = field(alias='-n', required=False, default=(5,5))
 
-def main(save_name: str, load_name: str, output_file: str, type: str = 'graph', seed: int = None): #config_file: str,
+    # percolation threshold
+    p: float = field(alias='-p', required=False, default=0.4)
+
+    # lattice degree
+    k: int = field(alias='-k', required=False, default=4)
+
+
+def main(file_name: str, load_name: str, output_file: str, type: str = 'graph',
+         seed: int = None, lattice_size: Tuple[int,int] = (5,5), p: float = 0.4,
+         k: int = 4): #config_file: str,
     if seed is not None:
         set_seed(seed)
 
@@ -56,16 +67,20 @@ def main(save_name: str, load_name: str, output_file: str, type: str = 'graph', 
     # Load and Save locations
     save_path = join(output_file, "images")
     makedirs(dirname(save_path), exist_ok=True)
-    load_path = join(output_file, "data")
-    data = loadmat(join(load_path, f"{load_name}.mat"))
-    edge_list = data['edge_list']
+    if type != 'gen_lattice':
+        load_path = join(output_file, "data")
+        data = loadmat(join(load_path, f"{load_name}.mat"))
+        edge_list = data['edge_list']
 
     # plot and save images
-    if type == 'graph':
-        fig = plot_network_from_edgelist(edge_list)
+    if type == 'gen_lattice':
+        edge_list = gen_lattice(lattice_size[0], lattice_size[1], p, k)
+        fig = plot_lattice_from_edgelist(edge_list, lattice_size[0], lattice_size[1])
+    elif type == 'lattice':
+        fig = plot_lattice_from_edgelist(edge_list, lattice_size[0], lattice_size[1])
     else:
-        fig = plot_lattice_from_edgelist(edge_list)
-    fig.savefig(join(save_path, f"{save_name}.png"))
+        fig = plot_network_from_edgelist(edge_list)
+    fig.savefig(join(save_path, f"{file_name}.png"))
 
 if __name__ == "__main__":
     parser = ArgumentParser(add_dest_to_option_strings=False,
