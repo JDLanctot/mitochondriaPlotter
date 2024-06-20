@@ -1,0 +1,23 @@
+name: mitochondriaPlotter
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - ipdb
+  - ipython
+  - matplotlib
+  - networkx
+  - numpy
+  - pip
+  - python
+  - pyyaml
+  - scipy
+  - tqdm
+  - pip:
+      - abstractcp
+      - more-itertools
+      - simple-parsing
+      - wurlitzer
+
