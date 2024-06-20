@@ -11,7 +11,7 @@ This tool generates a network visualization of mitochondrial connections based o
 
 You can run the following to setup the the package as a conda environment:
 ```bash
- conda env create --file=environment.devenv.yml
+conda env create --file=environment.devenv.yml
 pip install -e .
 ```
 
