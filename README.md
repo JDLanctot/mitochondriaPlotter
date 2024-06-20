@@ -7,8 +7,13 @@ This tool generates a network visualization of mitochondrial connections based o
 
 ### Prerequisites
 - Python 3.x
-- MATLAB (for .mat file creation)
-- Required Python libraries: (list any libraries your script depends on, e.g., `matplotlib`, `numpy`)
+- Required Python libraries are listed in the `environment.devenv.yml`. 
+
+You can run the following to setup the the package as a conda environment:
+```bash
+ conda env create --file=environment.devenv.yml
+pip install -e .
+```
 
 ### Installation
 Clone this repository to your local machine:
