@@ -26,10 +26,38 @@ cd mitochondriaPlotter
 To run the program, navigate to the project directory in your command line interface and execute the following command:
 
 ```bash
-python examples\plot.py -n image -d edge_list -o C:\Users\Jordi\PycharmProjects\mitochondriaPlotter\examples
+python examples\plot.py -f image -l edge_list -t gen_lattice -o C:\Users\Jordi\PycharmProjects\mitochondriaPlotter\examples -n 7 7 -p 0.4 -k 4
 ```
 
 Here you should replace `C:\Users\Jordi\PycharmProjects` with the correction to the path where your repo is located.
+
+Here are the required flags:
+# save file name
+file_name: str = field(alias='-f', required=True)
+
+# data file name
+load_name: str = field(alias='-l', required=True)
+
+# .yml file containing HyperParams
+# config_file: str = field(alias='-c', required=True)
+
+# where to save the plot
+output_file: str = field(alias='-o', required=True)
+
+# whether it is a graph or lattice or to gen_lattice (generate a lattice)
+type: str = field(alias='-t', required=False, default='graph')
+
+# random seed
+seed: int = field(alias='-s', default=None, required=False)
+
+# Size of a lattice
+lattice_size: Tuple[int,int] = field(alias='-n', required=False, default=(5,5))
+
+# percolation threshold
+p: float = field(alias='-p', required=False, default=0.4)
+
+# lattice degree
+k: int = field(alias='-k', required=False, default=4)
 
 ## Data Format
 The input data should be a .mat file containing an edgelist. The edgelist is structured as a 2xNx2 matrix, where:
