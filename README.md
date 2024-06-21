@@ -34,18 +34,25 @@ Here you should replace `C:\Users\Jordi\PycharmProjects` with the correction to 
 Here are the required flags:
 _save file name_
 file_name: str = field(alias='-f', required=True)
+
 _data file name_
 load_name: str = field(alias='-l', required=True)
+
 _where to save the plot_
 output_file: str = field(alias='-o', required=True)
+
 _whether it is a graph or lattice or to gen_lattice (generate a lattice)_
 type: str = field(alias='-t', required=False, default='graph')
+
 _random seed_
 seed: int = field(alias='-s', default=None, required=False)
+
 _Size of a lattice_
 lattice_size: Tuple[int,int] = field(alias='-n', required=False, default=(5,5))
+
 _percolation threshold_
 p: float = field(alias='-p', required=False, default=0.4)
+
 _lattice degree_
 k: int = field(alias='-k', required=False, default=4)
 
