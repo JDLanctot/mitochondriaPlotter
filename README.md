@@ -32,31 +32,21 @@ python examples\plot.py -f image -l edge_list -t gen_lattice -o C:\Users\Jordi\P
 Here you should replace `C:\Users\Jordi\PycharmProjects` with the correction to the path where your repo is located.
 
 Here are the required flags:
-# save file name
+_save file name_
 file_name: str = field(alias='-f', required=True)
-
-# data file name
+_data file name_
 load_name: str = field(alias='-l', required=True)
-
-# .yml file containing HyperParams
-# config_file: str = field(alias='-c', required=True)
-
-# where to save the plot
+_where to save the plot_
 output_file: str = field(alias='-o', required=True)
-
-# whether it is a graph or lattice or to gen_lattice (generate a lattice)
+_whether it is a graph or lattice or to gen_lattice (generate a lattice)_
 type: str = field(alias='-t', required=False, default='graph')
-
-# random seed
+_random seed_
 seed: int = field(alias='-s', default=None, required=False)
-
-# Size of a lattice
+_Size of a lattice_
 lattice_size: Tuple[int,int] = field(alias='-n', required=False, default=(5,5))
-
-# percolation threshold
+_percolation threshold_
 p: float = field(alias='-p', required=False, default=0.4)
-
-# lattice degree
+_lattice degree_
 k: int = field(alias='-k', required=False, default=4)
 
 ## Data Format
