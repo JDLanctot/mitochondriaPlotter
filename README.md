@@ -32,6 +32,7 @@ python examples\plot.py -f image -l edge_list -t gen_lattice -o C:\Users\Jordi\P
 Here you should replace `C:\Users\Jordi\PycharmProjects` with the correction to the path where your repo is located.
 
 Here are the required flags:
+
 _save file name_
 
 file_name: str = field(alias='-f', required=True)
