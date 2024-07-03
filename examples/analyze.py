@@ -1,18 +1,15 @@
 from dataclasses import asdict
-
 from dataclasses import dataclass
 from os import makedirs, getcwd
 from os.path import dirname, join
-from pathlib import Path
-from typing import Tuple
-import matplotlib.pyplot as plt
 from simple_parsing import field, ArgumentParser
 from scipy.io import loadmat, savemat
 import numpy as np
+import networkx as nx
 
 # from mitochondriaplotter.params import HyperParams
-from mitochondriaplotter.plot import plot_network_from_edgelist, plot_lattice_from_edgelist, gen_lattice, plot_probability_distribution
-from mitochondriaplotter.util import set_seed, double_ended_to_edgelist
+from mitochondriaplotter.plot import plot_probability_distribution
+from mitochondriaplotter.util import set_seed, double_ended_to_edgelist, coalesced_graph
 from mitochondriaplotter.stats import get_degree_distribution, get_relative_component_sizes, get_number_loops, fraction_of_nodes_in_loops
 
 import shutil
@@ -32,25 +29,10 @@ class Options:
     # where to save the plot
     output_file: str = field(alias='-o', required=True)
 
-    # whether it is a graph or lattice
-    type: str = field(alias='-t', required=False, default='graph')
-
     # random seed
     seed: int = field(alias='-s', default=None, required=False)
 
-    # Size of a lattice
-    lattice_size: Tuple[int,int] = field(alias='-n', required=False, default=(5,5))
-
-    # percolation threshold
-    p: float = field(alias='-p', required=False, default=0.4)
-
-    # lattice degree
-    k: int = field(alias='-k', required=False, default=4)
-
-
-def main(file_name: str, load_name: str, output_file: str, type: str = 'graph',
-         seed: int = None, lattice_size: Tuple[int,int] = (5,5), p: float = 0.4,
-         k: int = 4): #config_file: str,
+def main(file_name: str, load_name: str, output_file: str, seed: int = None): #config_file: str,
     if seed is not None:
         set_seed(seed)
 
@@ -71,22 +53,32 @@ def main(file_name: str, load_name: str, output_file: str, type: str = 'graph',
     # Load and Save locations
     save_path = join(output_file, "images")
     makedirs(dirname(save_path), exist_ok=True)
-    if type != 'gen_lattice':
-        load_path = join(output_file, "data")
-        # data = loadmat(join(load_path, f"{load_name}.dat"))
-        # edge_list = data['edge_list']
-        edge_list = np.loadtxt(join(load_path, f"{load_name}.out"))
-        # connection_info = np.fromfile(join(load_path, f"{load_name}.dat"), dtype=float)
+    load_path = join(output_file, "data")
+    # data = loadmat(join(load_path, f"{load_name}.dat"))
+    # edge_list = data['edge_list']
+    edge_list = np.loadtxt(join(load_path, f"{load_name}.out"))
+    # connection_info = np.fromfile(join(load_path, f"{load_name}.dat"), dtype=float)
+
+    # Generate graph
+    # G = nx.from_edgelist(edge_list)
+    G = coalesced_graph(edge_list)
+
+    # Descriptives
+    f = fraction_of_nodes_in_loops(G)
+    n = get_number_loops(G)
+    print("Fraction of nodes in loops: ", f)
+    print("Total number of loops: ", n)
 
     # plot and save images
-    if type == 'gen_lattice':
-        edge_list = gen_lattice(lattice_size[0], lattice_size[1], p, k)
-        fig = plot_lattice_from_edgelist(edge_list, lattice_size[0], lattice_size[1])
-    elif type == 'lattice':
-        fig = plot_lattice_from_edgelist(edge_list, lattice_size[0], lattice_size[1])
-    else:
-        fig = plot_network_from_edgelist(edge_list)
-    fig.savefig(join(save_path, f"{file_name}.png"))
+    data = get_degree_distribution(G)
+    print(data)
+    fig = plot_probability_distribution(data, bins=3)
+    fig.savefig(join(save_path, f"{file_name}_degree.png"))
+
+    data = get_relative_component_sizes(G)
+    print(data)
+    fig = plot_probability_distribution(data)
+    fig.savefig(join(save_path, f"{file_name}_component_sizes.png"))
 
 if __name__ == "__main__":
     parser = ArgumentParser(add_dest_to_option_strings=False,
@@ -95,4 +87,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(**asdict(args.options))
+
 

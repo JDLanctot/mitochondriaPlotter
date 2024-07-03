@@ -4,7 +4,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import numpy as np
 import random
-from mitochondriaplotter.util import node_tuples_index_to_int
+from mitochondriaplotter.util import node_tuples_index_to_int, set_mpl, coalesced_graph
 from typing import List, Tuple
 
 __all__ = []
@@ -12,21 +12,16 @@ __all__.extend([
     'plot_network_from_edgelist',
     'plot_lattice_from_edgelist',
     'gen_lattice',
+    'plot_probability_distribution',
 ])
 
 def plot_network_from_edgelist(edgelist: List[Tuple[int,int]]) -> plt.Figure:
-    # Scaling weight of spring interactions
-    beta = 400
-
     # Create the graph from the edgelist
-    G = nx.from_edgelist(edgelist)
+    # G = nx.from_edgelist(edgelist)
+    G = coalesced_graph(edgelist)
 
     # Find all connected components
     connected_components = sorted(nx.connected_components(G), key=len, reverse=True)
-    largest_component = connected_components[0]
-
-    # Create a subgraph for the largest connected component
-    largest_subgraph = G.subgraph(largest_component)
 
     # Determine node degrees and apply the viridis colormap
     degrees = dict(G.degree())
@@ -36,25 +31,42 @@ def plot_network_from_edgelist(edgelist: List[Tuple[int,int]]) -> plt.Figure:
 
     # Set up the positions for the nodes
     pos = {}
-    pos.update(nx.spring_layout(largest_subgraph, center=(0, 0), weight=beta/len(connected_components[0])))  # Center largest component
 
-    # Position other components in a circular layout around the largest component
-    radius = 2  # Radius for positioning other components
-    angle_step = 2 * 3.14159 / (len(connected_components) - 1)
-    angle = 0
+    # Position components in a grid layout
+    grid_size = int(np.ceil(np.sqrt(len(connected_components))))
+    max_component_size = len(connected_components[0])
 
-    for component in connected_components[1:]:
+    # Define a base scale for the largest component
+    base_scale = 1.0
+
+    for i, component in enumerate(connected_components):
         component_subgraph = G.subgraph(component)
-        component_pos = nx.spring_layout(component_subgraph, center=(radius * np.cos(angle), radius * np.sin(angle)), weight=beta/len(component))
+
+        # Calculate center position for this component
+        row = i // grid_size
+        col = i % grid_size
+        center = (col * 3, -row * 3)  # Adjust the multiplier (3) to change spacing between components
+
+        # Scale factor based on component size
+        scale_factor = base_scale * (len(component) / max_component_size) ** 0.5
+
+        # Use kamada_kawai_layout for more uniform edge lengths within each component
+        component_pos = nx.kamada_kawai_layout(component_subgraph, scale=scale_factor)
+
+        # Shift the component to its position in the grid
+        component_pos = {node: (x + center[0], y + center[1]) for node, (x, y) in component_pos.items()}
+
         pos.update(component_pos)
-        angle += angle_step
 
     # Plot the graph
-    fig = plt.figure()
-    nx.draw(G, pos, node_color=node_colors, with_labels=False, node_size=500, width=2, edge_color='gray')
+    fig, ax = plt.subplots(figsize=(12, 12))
+    nx.draw(G, pos, node_color=node_colors, with_labels=False, node_size=50, width=1, edge_color='gray', ax=ax)
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     # sm.set_array([])
     # plt.colorbar(sm, label='Node Degree')
+
+    # Remove axis
+    ax.set_axis_off()
 
     return fig
 
@@ -121,4 +133,48 @@ def gen_lattice(rows: int, cols: int, p: float, k: int = 4) -> List[Tuple[int,in
     el1, el2 = zip(*edge_list)
     return node_tuples_index_to_int([list(el1), list(el2)], cols)
 
+def plot_probability_distribution(data: Tuple[np.ndarray, np.ndarray], bins: int = 10) -> plt.Figure:
+    """
+    Plots a probability distribution given a tuple of two numpy arrays.
+
+    Parameters:
+    - data: tuple (x, y)
+        x: numpy array of x values (data points)
+        y: numpy array of y values (counts)
+    - bins: int
+        Number of bins to use for the histogram
+
+    Returns:
+    - fig: matplotlib.figure.Figure
+        The figure object containing the plot.
+    """
+    set_mpl()
+
+    x, y = data
+
+    # Compute the histogram of the data
+    hist, bin_edges = np.histogram(x, bins=bins, weights=y)
+
+    # Normalize the histogram to get the PDF
+    bin_widths = np.diff(bin_edges)
+    hist_normalized = hist / (np.sum(hist) * bin_widths)
+
+    # Compute the bin centers
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    # Create a new figure
+    fig, ax = plt.subplots()
+
+    # Plot the data
+    ax.scatter(bin_centers, hist_normalized, label='Probability Distribution')
+
+    # Add labels and title
+    ax.set_xlabel('X values')
+    ax.set_ylabel('Probability')
+    ax.set_title('Probability Distribution')
+
+    # Tight layout for better spacing
+    plt.tight_layout()
+
+    return fig
 
