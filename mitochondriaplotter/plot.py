@@ -6,6 +6,9 @@ import numpy as np
 import random
 from mitochondriaplotter.util import node_tuples_index_to_int, set_mpl, coalesced_graph
 from typing import List, Tuple
+import pandas as pd
+import seaborn as sns
+from os.path import join
 
 __all__ = []
 __all__.extend([
@@ -178,3 +181,45 @@ def plot_probability_distribution(data: Tuple[np.ndarray, np.ndarray], bins: int
 
     return fig
 
+def plot_results(df: pd.DataFrame, save_path: str, file_name: str, a1: float, N_mito: int) -> None:
+    # Calculate x-axis values
+    df['x_axis'] = a1 * N_mito / df['b1']
+
+    # Set the style for all plots
+    sns.set_style("whitegrid")
+
+    # 1. Plot number of components
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df, x='x_axis', y='number_of_components')
+    plt.xscale('log')
+    plt.title(f'Number of Components vs a1*N_mito/b1 (a1={a1}, N_mito={N_mito})')
+    plt.xlabel('a1 * N_mito / b1 (log scale)')
+    plt.ylabel('Number of Components')
+    plt.savefig(join(save_path, f"{file_name}_number_of_components.png"))
+    plt.close()
+
+    # 2. Plot cycle categories
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df, x='x_axis', y='no_cycles', label='No Cycles')
+    sns.lineplot(data=df, x='x_axis', y='one_cycle', label='One Cycle')
+    sns.lineplot(data=df, x='x_axis', y='many_cycles', label='Many Cycles')
+    plt.xscale('log')
+    plt.title(f'Cycle Categories vs a1*N_mito/b1 (a1={a1}, N_mito={N_mito})')
+    plt.xlabel('a1 * N_mito / b1 (log scale)')
+    plt.ylabel('Fraction of Nodes')
+    plt.legend()
+    plt.savefig(join(save_path, f"{file_name}_cycle_categories.png"))
+    plt.close()
+
+    # 3. Plot degree distribution
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(data=df, x='x_axis', y='degree_1', label='Degree 1')
+    sns.lineplot(data=df, x='x_axis', y='degree_2', label='Degree 2')
+    sns.lineplot(data=df, x='x_axis', y='degree_3', label='Degree 3')
+    plt.xscale('log')
+    plt.title(f'Degree Distribution vs a1*N_mito/b1 (a1={a1}, N_mito={N_mito})')
+    plt.xlabel('a1 * N_mito / b1 (log scale)')
+    plt.ylabel('Fraction of Nodes')
+    plt.legend()
+    plt.savefig(join(save_path, f"{file_name}_degree_distribution.png"))
+    plt.close()

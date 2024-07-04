@@ -1,125 +1,102 @@
-from dataclasses import asdict
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from os import makedirs, getcwd
 from os.path import dirname, join
 from simple_parsing import field, ArgumentParser
-from scipy.io import loadmat, savemat
 import numpy as np
 import networkx as nx
 from typing import Tuple
+import pandas as pd
 
-# from mitochondriaplotter.params import HyperParams
-from mitochondriaplotter.plot import plot_probability_distribution
-from mitochondriaplotter.util import set_seed, double_ended_to_edgelist, coalesced_graph
-from mitochondriaplotter.stats import get_degree_distribution, get_relative_component_sizes, get_number_loops, fraction_of_nodes_in_loops, categorize_nodes_by_cycles
-
-import shutil
+from mitochondriaplotter.plot import plot_probability_distribution, plot_results
+from mitochondriaplotter.util import set_seed, coalesced_graph
+from mitochondriaplotter.stats import (
+    get_degree_distribution, get_relative_component_sizes,
+    get_number_loops, fraction_of_nodes_in_loops, categorize_nodes_by_cycles
+)
 
 @dataclass
 class Options:
     """ options """
-    # save file name
     file_name: str = field(alias='-f', required=True)
-
-    # .yml file containing HyperParams
-    # config_file: str = field(alias='-c', required=True)
-
-    # where to save the plot
     output_file: str = field(alias='-o', required=True)
-
-    # what the parameters we are checking
     a_s: Tuple[float, float] = field(alias='-a', required=True)
-
-    # random seed
+    N_mito: int = field(alias='-N', default=50, required=False)
     seed: int = field(alias='-s', default=None, required=False)
 
+def process_sample(load_path: str, load_name: str) -> dict:
+    edge_list = np.loadtxt(join(load_path, load_name))
+    G = coalesced_graph(edge_list)
+
+    degree_dist = get_degree_distribution(G)
+    component_sizes = get_relative_component_sizes(G)
+    cycle_categories = categorize_nodes_by_cycles(G)
+
+    # Convert degree distribution to fractions and ensure 3 values
+    total_nodes = sum(degree_dist[1])
+    degree_fractions = np.zeros(3)
+    for degree, count in zip(degree_dist[0], degree_dist[1]):
+        if degree <= 3:
+            degree_fractions[degree - 1] = count / total_nodes
+
+    return {
+        'fraction_in_loops': fraction_of_nodes_in_loops(G),
+        'number_of_loops': get_number_loops(G),
+        'degree_distribution': degree_fractions,
+        'largest_component_size': component_sizes[0][0],
+        'number_of_components': len(component_sizes[0]),
+        'no_cycles': cycle_categories['no_cycles'],
+        'one_cycle': cycle_categories['one_cycle'],
+        'many_cycles': cycle_categories['many_cycles']
+    }
+
 def main(file_name: str, output_file: str, a_s: Tuple[float, float],
-         seed: int = None): #config_file: str,
+         N_mito: int, seed: int = None):
     if seed is not None:
         set_seed(seed)
 
     a1, a2 = a_s
 
-    # Testing edge_list manually
-    # edge_list = double_ended_to_edgelist([
-    #     [[1,1], [2,2], [3,1], [5,2], [7,1], [8,1], [9,2]],
-    #     [[2,1], [3,1], [4,1], [6,1], [8,1], [9,2], [10,1]]
-    # ])
-    # save_path = join(output_file, "data")
-    # makedirs(dirname(save_path), exist_ok=True)
-    # savemat(join(save_path, f"{load_name}.mat"), {"edge_list": edge_list})
-
-    # File locations and parameters
-    # hp = HyperParams.load(Path(getcwd() + config_file))
-    # config_file_path = join(getcwd(), config_file[1:])
-    # shutil.copyfile(config_file_path, f"{dirname(save_path)}/images/{file_name}.yml")
-
-    # Load and Save locations
     save_path = join(output_file, "output")
     makedirs(dirname(save_path), exist_ok=True)
-    fs = [] # fraction of nodes in atleast one loop
-    Ns = [] # number of loops
-    ks = [] # degree distribution
-    Lcc_Gs = [] # fractional size of largest Connected component
-    Cs = [] # number of connected components
-    f_is = [] # fraction of nodes in a cc with no loops, one loop, or many loops
+
+    b1_values = [0.001, 0.1, 1, 50, 100, 500, 1000]
     samples = 10
-    for b1 in [0.001, 0.1, 1, 50, 100, 500, 1000]:
-        f = 0
-        N = 0
-        k_vals = [0, 0, 0]
-        Lcc_rel = 0
-        C = 0
-        f_i = [0, 0, 0]
+    results = []
+
+    for b1 in b1_values:
+        sample_results = []
         for i in range(1, samples + 1):
             load_name = f"edge_ends_a1_{a1}_b1_{b1}_a2_{a2}_run{i}.out"
             load_path = join(output_file, "data", f"Aspatial_model_data_a1_{a1}_a2_{a2}", f"b1_{b1}")
-            # data = loadmat(join(load_path, f"{load_name}.dat"))
-            # edge_list = data['edge_list']
-            edge_list = np.loadtxt(join(load_path, load_name))
-            # connection_info = np.fromfile(join(load_path, f"{load_name}.dat"), dtype=float)
+            sample_results.append(process_sample(load_path, load_name))
 
-            # Generate graph
-            # G = nx.from_edgelist(edge_list)
-            G = coalesced_graph(edge_list)
+        avg_results = {
+            'b1': b1,
+            'fraction_in_loops': np.mean([r['fraction_in_loops'] for r in sample_results]),
+            'number_of_loops': np.mean([r['number_of_loops'] for r in sample_results]),
+            'largest_component_size': np.mean([r['largest_component_size'] for r in sample_results]),
+            'number_of_components': np.mean([r['number_of_components'] for r in sample_results]),
+            'no_cycles': np.mean([r['no_cycles'] for r in sample_results]),
+            'one_cycle': np.mean([r['one_cycle'] for r in sample_results]),
+            'many_cycles': np.mean([r['many_cycles'] for r in sample_results]),
+        }
 
-            # Descriptives
-            f += fraction_of_nodes_in_loops(G)
-            N += get_number_loops(G)
-            print("Fraction of nodes in loops: ", f)
-            print("Total number of loops: ", N)
+        # Average degree distribution
+        avg_degree_dist = np.mean([r['degree_distribution'] for r in sample_results], axis=0)
+        avg_results['degree_1'] = avg_degree_dist[0]
+        avg_results['degree_2'] = avg_degree_dist[1]
+        avg_results['degree_3'] = avg_degree_dist[2]
 
-            data = get_degree_distribution(G)
-            k_rels = np.divide(data[1], len(G))
-            for j,k in enumerate(data[0]):
-                k_vals[k - 1] += float(k_rels[j])
-            print(data)
-            # fig = plot_probability_distribution(data, bins=3)
-            # fig.savefig(join(save_path, f"{file_name}_degree.png"))
+        results.append(avg_results)
 
-            data = get_relative_component_sizes(G)
-            Lcc_rel += float(data[0][0])
-            C += len(data[0])
-            print(data)
-            # fig = plot_probability_distribution(data)
-            # fig.savefig(join(save_path, f"{file_name}_component_sizes.png"))
+    df_results = pd.DataFrame(results)
+    plot_results(df_results, save_path, file_name, a1, N_mito)
+    import ipdb
+    ipdb.set_trace()
+    # Save results
+    df_results.to_csv(join(save_path, f"{file_name}_results.csv"), index=False)
 
-            result = categorize_nodes_by_cycles(G)
-            f_i[0] += result['no_cycles']
-            f_i[1] += result ['one_cycle']
-            f_i[2] += result['many_cycles']
-
-        f /= samples
-        N /= samples
-        C /= samples
-        fs.append(f)
-        f_is.append(np.divide(f_i, samples))
-        Ns.append(N)
-        Cs.append(C)
-        ks.append(np.divide(k_vals, samples))
-        Lcc_Gs.append(float(np.divide(Lcc_rel, samples)))
-    ks = np.array(ks).T
-    f_is = np.array(f_is).T
+    print(df_results)
 
 if __name__ == "__main__":
     parser = ArgumentParser(add_dest_to_option_strings=False,
@@ -128,6 +105,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     main(**asdict(args.options))
-
-
-
