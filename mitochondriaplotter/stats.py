@@ -2,6 +2,7 @@ import networkx as nx
 import numpy as np
 from mitochondriaplotter.util import node_tuples_index_to_int
 from typing import List, Tuple, Set
+from collections import defaultdict
 
 __all__ = []
 __all__.extend([
@@ -10,6 +11,7 @@ __all__.extend([
     'get_relative_component_sizes',
     'get_number_loops',
     'fraction_of_nodes_in_loops',
+    'categorize_nodes_by_cycles',
 ])
 
 def get_degree_distribution(G: nx.Graph) -> Tuple[np.ndarray, np.ndarray]:
@@ -59,3 +61,38 @@ def fraction_of_nodes_in_loops(G: nx.Graph) -> float:
     total_nodes = G.number_of_nodes()
     fraction_in_cycles = len(nodes_in_cycles) / total_nodes if total_nodes > 0 else 0
     return fraction_in_cycles
+
+def categorize_nodes_by_cycles(G: nx.Graph) -> dict:
+    # Find all connected components
+    components = list(nx.connected_components(G))
+
+    # Initialize counters
+    node_counts = {
+        'no_cycles': 0,
+        'one_cycle': 0,
+        'many_cycles': 0
+    }
+
+    for component in components:
+        subgraph = G.subgraph(component)
+        cycles = nx.cycle_basis(subgraph)
+
+        if len(cycles) == 0:
+            node_counts['no_cycles'] += len(component)
+        elif len(cycles) == 1:
+            node_counts['one_cycle'] += len(component)
+        else:
+            node_counts['many_cycles'] += len(component)
+
+    total_nodes = G.number_of_nodes()
+
+    # Calculate fractions
+    fractions = {
+        key: count / total_nodes if total_nodes > 0 else 0
+        for key, count in node_counts.items()
+    }
+
+    # Add raw counts to the result
+    fractions.update({f'{key}_count': count for key, count in node_counts.items()})
+
+    return fractions
