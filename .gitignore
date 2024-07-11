@@ -18,3 +18,5 @@ environment.yml
 *.mat
 *.dat
 *.out
+*.png
+*.csv
