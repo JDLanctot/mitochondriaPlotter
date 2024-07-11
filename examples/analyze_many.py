@@ -4,7 +4,7 @@ from os.path import dirname, join
 from simple_parsing import field, ArgumentParser
 import numpy as np
 import networkx as nx
-from typing import Tuple
+from typing import Tuple, Dict, List, Literal
 import pandas as pd
 
 from mitochondriaplotter.plot import plot_probability_distribution, plot_results
@@ -16,16 +16,40 @@ from mitochondriaplotter.stats import (
 
 @dataclass
 class Options:
-    """ options """
-    file_name: str = field(alias='-f', required=True)
-    output_file: str = field(alias='-o', required=True)
-    a_s: Tuple[float, float] = field(alias='-a', required=True)
-    N_mito: int = field(alias='-N', default=50, required=False)
-    seed: int = field(alias='-s', default=None, required=False)
+    """ Command line options for mitochondria network analysis """
+    file_name: str = field(alias='-f', required=True, help="Output file name prefix")
+    output_file: str = field(alias='-o', required=True, help="Path to output directory")
+    model: Literal['aspatial', 'spatial'] = field(alias='-m', required=True, help="Model type: 'aspatial' or 'spatial'")
 
-def process_sample(load_path: str, load_name: str) -> dict:
-    edge_list = np.loadtxt(join(load_path, load_name))
-    G = coalesced_graph(edge_list)
+    # Model parameters
+    N_mito: int = field(alias='-N', default=50, help="Number of mitochondria")
+    a_s: Tuple[float, float] = field(alias='-a', default=(0.002, 0.01), help="Tuple of a1 and a2 values for aspatial model")
+    tau: float = field(alias='-t', default=1.0, help="Tau value for lattice model")
+    dim: str = field(alias='-d', default='2d', help="Dimension for lattice model: '2d' or 'quasi1d'")
+
+    # General options
+    seed: int = field(alias='-s', default=None, help="Random seed for reproducibility")
+
+    def __post_init__(self):
+        if self.model == 'aspatial' and self.dim != '2d':
+            raise ValueError("Dimension parameter is not used for aspatial model")
+        if self.model == 'spatial' and len(self.a_s) != 2:
+            raise ValueError("a_s parameter is not used for spatial model")
+
+def process_sample(load_path: str, load_name: str, model: str = 'aspatial', max_nodes: int = 441) -> dict:
+    edgelist = np.loadtxt(join(load_path, load_name))
+    if model == 'aspatial':
+        G = coalesced_graph(edgelist)
+    else:
+        # Convert edgelist to a list of tuples with integer node IDs
+        edgelist = [(int(edge[0]), int(edge[1])) for edge in edgelist]
+        G = nx.from_edgelist(edgelist)
+
+        # Add any missing nodes up to max_nodes
+        existing_nodes = set(G.nodes())
+        for node in range(max_nodes):
+            if node not in existing_nodes:
+                G.add_node(node)
 
     degree_dist = get_degree_distribution(G)
     component_sizes = get_relative_component_sizes(G)
@@ -49,52 +73,97 @@ def process_sample(load_path: str, load_name: str) -> dict:
         'many_cycles': cycle_categories['many_cycles']
     }
 
-def main(file_name: str, output_file: str, a_s: Tuple[float, float],
-         N_mito: int, seed: int = None):
-    if seed is not None:
-        set_seed(seed)
+def extend_results(avg_results: Dict, sample_results: List) -> Dict:
+    # Main Metrics
+    avg_results['fraction_in_loops'] = np.mean([r['fraction_in_loops'] for r in sample_results])
+    avg_results['number_of_loops'] = np.mean([r['number_of_loops'] for r in sample_results])
+    avg_results['largest_component_size'] = np.mean([r['largest_component_size'] for r in sample_results])
+    avg_results['number_of_components'] = np.mean([r['number_of_components'] for r in sample_results])
+    avg_results['no_cycles'] = np.mean([r['no_cycles'] for r in sample_results])
+    avg_results['one_cycle'] = np.mean([r['one_cycle'] for r in sample_results])
+    avg_results['many_cycles'] = np.mean([r['many_cycles'] for r in sample_results])
 
-    a1, a2 = a_s
+    # Average degree distribution
+    avg_degree_dist = np.mean([r['degree_distribution'] for r in sample_results], axis=0)
+    avg_results['degree_1'] = avg_degree_dist[0]
+    avg_results['degree_2'] = avg_degree_dist[1]
+    avg_results['degree_3'] = avg_degree_dist[2]
 
-    save_path = join(output_file, "output")
-    makedirs(dirname(save_path), exist_ok=True)
+    return avg_results
 
-    b1_values = [0.001, 0.1, 1, 50, 100, 500, 1000]
+
+def main(options: Options):
+    if options.seed is not None:
+        set_seed(options.seed)
+
     samples = 10
     results = []
 
-    for b1 in b1_values:
-        sample_results = []
-        for i in range(1, samples + 1):
-            load_name = f"edge_ends_a1_{a1}_b1_{b1}_a2_{a2}_run{i}.out"
-            load_path = join(output_file, "data", f"Aspatial_model_data_a1_{a1}_a2_{a2}", f"b1_{b1}")
-            sample_results.append(process_sample(load_path, load_name))
+    if options.model == 'aspatial':
+        a1, a2 = options.a_s
+        if a1 == 10:
+            a1 = int(a1)
+        params_f = f'a1_{a1}_a2_{a2}'
+    else:
+        params_f = f'dim_{options.dim}_tau_{int(options.tau)}'
 
-        avg_results = {
-            'b1': b1,
-            'fraction_in_loops': np.mean([r['fraction_in_loops'] for r in sample_results]),
-            'number_of_loops': np.mean([r['number_of_loops'] for r in sample_results]),
-            'largest_component_size': np.mean([r['largest_component_size'] for r in sample_results]),
-            'number_of_components': np.mean([r['number_of_components'] for r in sample_results]),
-            'no_cycles': np.mean([r['no_cycles'] for r in sample_results]),
-            'one_cycle': np.mean([r['one_cycle'] for r in sample_results]),
-            'many_cycles': np.mean([r['many_cycles'] for r in sample_results]),
-        }
+    save_path = join(options.output_file, "output", options.model, params_f)
+    makedirs(dirname(save_path), exist_ok=True)
 
-        # Average degree distribution
-        avg_degree_dist = np.mean([r['degree_distribution'] for r in sample_results], axis=0)
-        avg_results['degree_1'] = avg_degree_dist[0]
-        avg_results['degree_2'] = avg_degree_dist[1]
-        avg_results['degree_3'] = avg_degree_dist[2]
+    if options.model == 'aspatial':
+        # b1_values = [0.001, 0.1, 1, 50, 100, 500, 1000]
+        b1_values = [0.001, 0.01, 0.1, 1, 10, 20, 50, 80, 100, 150, 200, 500, 800, 1000]
 
-        results.append(avg_results)
+        for b1 in b1_values:
+            sample_results = []
+            for i in range(1, samples + 1):
+                load_name = f"edge_ends_a1_{a1}_b1_{b1}_a2_{a2}_run{i}.out"
+                load_path = join(options.output_file, "data", f"Aspatial_model_data_a1_{a1}_a2_{a2}", f"b1_{b1}")
+                sample_results.append(process_sample(load_path, load_name, options.model))
+
+            # Setup the metrics or values that are model specific
+            avg_results = {
+                'a1': a1,
+                'a2': a2,
+                'b1': b1,
+                'N_mito': options.N_mito
+            }
+
+            # Add the metrics shared across models
+            avg_results = extend_results(avg_results, sample_results)
+            results.append(avg_results)
+
+    else:
+        a1 = 1
+
+        if options.dim == 'quasi1d':
+            q = 'quasi'
+        else:
+            q = ''
+
+        p_values = [0.1, 0.2, 0.4, 0.5, 0.6, 0.8, 0.9, 0.99]
+        for p in p_values:
+            sample_results = []
+            for i in range(1, samples + 1):
+                load_name = f"lattice_node_connection_info_p{p}_run{i}.dat"
+                load_path = join(options.output_file, "data", f"latticeModel_data_{options.dim}_tau{int(options.tau)}", f"p_{p}")
+                sample_results.append(process_sample(load_path, f"{q}{load_name}", options.model))
+
+            # Setup the metrics or values that are model specific
+            avg_results = {
+                'p': p,
+                'N_mito': options.N_mito
+            }
+
+            # Add the metrics shared across models
+            avg_results = extend_results(avg_results, sample_results)
+            results.append(avg_results)
 
     df_results = pd.DataFrame(results)
-    plot_results(df_results, save_path, file_name, a1, N_mito)
-    import ipdb
-    ipdb.set_trace()
+    plot_results(df_results, save_path, options.file_name, options.model)
+
     # Save results
-    df_results.to_csv(join(save_path, f"{file_name}_results.csv"), index=False)
+    df_results.to_csv(join(save_path, f"{options.file_name}_results.csv"), index=False)
 
     print(df_results)
 
@@ -104,4 +173,4 @@ if __name__ == "__main__":
     parser.add_arguments(Options, "options")
     args = parser.parse_args()
 
-    main(**asdict(args.options))
+    main(args.options)

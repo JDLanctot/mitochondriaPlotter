@@ -6,7 +6,7 @@ import matplotlib as mpl
 from typing import List, Tuple, Union
 import networkx as nx
 
-__all__ = ['set_seed', 'set_mpl', 'double_ended_to_edgelist', 'node_tuples_index_to_int', 'coalesced_graph']
+__all__ = ['set_seed', 'set_mpl', 'double_ended_to_edgelist', 'node_tuples_index_to_int', 'coalesced_graph', 'optimize_circular_order']
 
 def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -96,3 +96,12 @@ def coalesced_graph(edge_list: np.ndarray) -> nx.Graph:
     # Step 5: Remove self-loops
     H.remove_edges_from(nx.selfloop_edges(H))
     return H
+
+def optimize_circular_order(G):
+    # Use depth-first search to get a node ordering
+    dfs_nodes = list(nx.dfs_preorder_nodes(G))
+
+    # Add any remaining nodes (if any) to the end of the list
+    ordered_nodes = dfs_nodes + [node for node in G.nodes() if node not in dfs_nodes]
+
+    return ordered_nodes

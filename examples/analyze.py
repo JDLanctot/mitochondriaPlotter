@@ -36,14 +36,16 @@ def main(file_name: str, load_name: str, output_file: str, seed: int = None): #c
     if seed is not None:
         set_seed(seed)
 
-    # Testing edge_list manually
-    # edge_list = double_ended_to_edgelist([
+    model = 'aspatial'
+
+    # Testing edgelist manually
+    # edgelist = double_ended_to_edgelist([
     #     [[1,1], [2,2], [3,1], [5,2], [7,1], [8,1], [9,2]],
     #     [[2,1], [3,1], [4,1], [6,1], [8,1], [9,2], [10,1]]
     # ])
     # save_path = join(output_file, "data")
     # makedirs(dirname(save_path), exist_ok=True)
-    # savemat(join(save_path, f"{load_name}.mat"), {"edge_list": edge_list})
+    # savemat(join(save_path, f"{load_name}.mat"), {"edgelist": edgelist})
 
     # File locations and parameters
     # hp = HyperParams.load(Path(getcwd() + config_file))
@@ -55,13 +57,25 @@ def main(file_name: str, load_name: str, output_file: str, seed: int = None): #c
     makedirs(dirname(save_path), exist_ok=True)
     load_path = join(output_file, "data")
     # data = loadmat(join(load_path, f"{load_name}.dat"))
-    # edge_list = data['edge_list']
-    edge_list = np.loadtxt(join(load_path, f"{load_name}.out"))
+    # edgelist = data['edgelist']
+    edgelist = np.loadtxt(join(load_path, f"{load_name}.out"))
     # connection_info = np.fromfile(join(load_path, f"{load_name}.dat"), dtype=float)
 
     # Generate graph
-    # G = nx.from_edgelist(edge_list)
-    G = coalesced_graph(edge_list)
+    if model == 'aspatial':
+        G = coalesced_graph(edgelist)
+    else:
+        max_nodes = 500
+        # Convert edgelist to a list of tuples with integer node IDs
+        edgelist = [(int(edge[0]), int(edge[1])) for edge in edgelist]
+        G = nx.from_edgelist(edgelist)
+
+        # Add any missing nodes up to max_nodes
+        existing_nodes = set(G.nodes())
+        for node in range(max_nodes):
+            if node not in existing_nodes:
+                G.add_node(node)
+
 
     # Descriptives
     f = fraction_of_nodes_in_loops(G)

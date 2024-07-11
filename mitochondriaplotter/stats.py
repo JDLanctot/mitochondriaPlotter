@@ -47,8 +47,6 @@ def get_number_loops(G: nx.Graph) -> int:
         cycles += num_edges - num_nodes + 1
     cycles_2 = len(nx.cycle_basis(G))
     assert cycles == cycles_2
-    print("Number of Cycles: ", cycles)
-    print("Cycle basis: ", cycles_2)
     return cycles
 
 def fraction_of_nodes_in_loops(G: nx.Graph) -> float:
