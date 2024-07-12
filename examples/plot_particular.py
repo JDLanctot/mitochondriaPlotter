@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from dataclasses import asdict, dataclass
 from simple_parsing import field, ArgumentParser
 
-from mitochondriaplotter.plot import plot_network_from_edgelist, plot_particular_network_from_edgelist, plot_particular_network_from_edgelist_1, plot_lattice_from_edgelist, gen_lattice
+from mitochondriaplotter.plot import plot_network_from_edgelist, plot_particular_network_from_edgelist, plot_particular_network_from_edgelist_5, plot_particular_network_from_edgelist_6, plot_lattice_from_edgelist, gen_lattice
 from mitochondriaplotter.util import set_seed
 
 @dataclass
@@ -94,7 +94,7 @@ def main(options: Options):
         makedirs(save_path, exist_ok=True)
 
         edgelist = load_edgelist(options.model, a1, a2, b1, options.run)
-        fig = plot_particular_network_from_edgelist(edgelist, options.model)
+        fig = plot_particular_network_from_edgelist_6(edgelist, options.model)
         save_name = f"{options.file_name}_a1_{a1}_a2_{a2}_b1_{b1}_run{options.run}.png"
         fig.savefig(join(save_path, save_name))
         print(f"Plot saved to {join(save_path, save_name)}")
