@@ -29,6 +29,7 @@ __all__.extend([
     'plot_probability_distribution',
 ])
 
+
 def custom_circular_layout(G, scale=1, center=None, dim=2, ordering=None):
     if ordering is None:
         ordering = list(G.nodes())
@@ -178,7 +179,7 @@ def plot_network_from_edgelist(edgelist: List[Tuple[int,int]], model: str = 'asp
     return fig
 
 def plot_particular_network_from_edgelist(
-    edgelist: List[Tuple[int,int]],
+    edgelist: List[Tuple[int, int]],
     model: str = 'aspatial',
     # scale_factors: List[float] = None,
     # x_translations: List[float] = None,
@@ -316,9 +317,10 @@ def plot_particular_network_from_edgelist(
 
     return fig
 
+
 # FOR a1 = 0.2, a2 = 0.01, b1 = 0.1, run 8
 def plot_particular_network_from_edgelist_1(
-    edgelist: List[Tuple[int,int]],
+    edgelist: List[Tuple[int, int]],
     model: str = 'aspatial',
     # scale_factors: List[float] = None,
     # x_translations: List[float] = None,
@@ -446,9 +448,10 @@ def plot_particular_network_from_edgelist_1(
 
     return fig
 
+
 # FOR a1 = 0.2, a2 = 0.01, b1 = 1.0, run 1
 def plot_particular_network_from_edgelist_2(
-    edgelist: List[Tuple[int,int]],
+    edgelist: List[Tuple[int, int]],
     model: str = 'aspatial',
     # scale_factors: List[float] = None,
     # x_translations: List[float] = None,
@@ -576,9 +579,10 @@ def plot_particular_network_from_edgelist_2(
 
     return fig
 
+
 # FOR a1 = 0.2, a2 = 0.0, b1 = 0.1, run 6
 def plot_particular_network_from_edgelist_3(
-    edgelist: List[Tuple[int,int]],
+    edgelist: List[Tuple[int, int]],
     model: str = 'aspatial',
     # scale_factors: List[float] = None,
     # x_translations: List[float] = None,
@@ -721,9 +725,10 @@ def plot_particular_network_from_edgelist_3(
 
     return fig
 
+
 # FOR a1 = 0.2, a2 = 0.0, b1 = 1.0, run 2
 def plot_particular_network_from_edgelist_4(
-    edgelist: List[Tuple[int,int]],
+    edgelist: List[Tuple[int, int]],
     model: str = 'aspatial',
     # scale_factors: List[float] = None,
     # x_translations: List[float] = None,
@@ -861,9 +866,10 @@ def plot_particular_network_from_edgelist_4(
 
     return fig
 
+
 # FOR a1 = 0.2, a2 = 0.01, b1 = 10, run 5
 def plot_particular_network_from_edgelist_5(
-    edgelist: List[Tuple[int,int]],
+    edgelist: List[Tuple[int, int]],
     model: str = 'aspatial',
     # scale_factors: List[float] = None,
     # x_translations: List[float] = None,
@@ -1004,7 +1010,7 @@ def plot_particular_network_from_edgelist_5(
 
 # FOR a1 = 0.2, a2 = 0.0, b1 = 10, run 1
 def plot_particular_network_from_edgelist_6(
-    edgelist: List[Tuple[int,int]],
+    edgelist: List[Tuple[int, int]],
     model: str = 'aspatial',
     # scale_factors: List[float] = None,
     # x_translations: List[float] = None,
@@ -1142,7 +1148,8 @@ def plot_particular_network_from_edgelist_6(
 
     return fig
 
-def plot_lattice_from_edgelist(edgelist: List[Tuple[int,int]], rows: int, cols: int) -> plt.Figure:
+
+def plot_lattice_from_edgelist(edgelist: List[Tuple[int, int]], rows: int, cols: int) -> plt.Figure:
     # Create the graph
     G = nx.Graph()
 
@@ -1177,6 +1184,7 @@ def plot_lattice_from_edgelist(edgelist: List[Tuple[int,int]], rows: int, cols: 
 
     return fig
 
+
 def gen_lattice(rows: int, cols: int, p: float, k: int = 4) -> List[Tuple[int,int]]:
     nodes = [(i, j) for i in range(rows) for j in range(cols)]
 
@@ -1204,6 +1212,7 @@ def gen_lattice(rows: int, cols: int, p: float, k: int = 4) -> List[Tuple[int,in
 
     el1, el2 = zip(*edge_list)
     return node_tuples_index_to_int([list(el1), list(el2)], cols)
+
 
 def plot_probability_distribution(data: Tuple[np.ndarray, np.ndarray], bins: int = 10) -> plt.Figure:
     """
@@ -1250,6 +1259,7 @@ def plot_probability_distribution(data: Tuple[np.ndarray, np.ndarray], bins: int
 
     return fig
 
+
 def plot_results(df: pd.DataFrame, save_path: str, file_name: str, model: str) -> None:
     # Calculate x-axis value
     N_mito = df['N_mito'][0]
@@ -1268,6 +1278,7 @@ def plot_results(df: pd.DataFrame, save_path: str, file_name: str, model: str) -
     cmap = plt.get_cmap('viridis')
 
     font_tnr = FontProperties(family='Times New Roman', size=20)
+
     def setup_plot(ax, is_log_x=False, title=''):
         # Remove grid
         ax.grid(False)

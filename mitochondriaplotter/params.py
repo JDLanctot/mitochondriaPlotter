@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from simple_parsing import choice, Serializable
+from simple_parsing import Serializable
 
 __all__ = []
 __all__.extend([
@@ -12,7 +12,7 @@ __all__.extend([
 class PlotParams(Serializable):
     val: int
 
+
 @dataclass
 class HyperParams(Serializable):
     plot: PlotParams
-

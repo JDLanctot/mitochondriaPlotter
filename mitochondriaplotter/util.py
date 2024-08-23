@@ -3,15 +3,18 @@ import random
 
 import numpy as np
 import matplotlib as mpl
-from typing import List, Tuple, Union
+from typing import List, Tuple
 import networkx as nx
 
-__all__ = ['set_seed', 'set_mpl', 'double_ended_to_edgelist', 'node_tuples_index_to_int', 'coalesced_graph', 'optimize_circular_order']
+__all__ = ['set_seed', 'set_mpl', 'double_ended_to_edgelist',
+           'node_tuples_index_to_int', 'coalesced_graph', 'optimize_circular_order']
+
 
 def set_seed(seed):
     os.environ['PYTHONHASHSEED'] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
+
 
 def set_mpl():
     # change defaults to be less ugly for matplotlib
@@ -26,7 +29,8 @@ def set_mpl():
     mpl.rc('axes', linewidth=1, edgecolor="#222222", labelcolor="#222222")
     mpl.rc('text', usetex=False, color="#222222")
 
-def double_ended_to_edgelist(mat: List[List[List]]) -> List[Tuple[int,int]]:
+
+def double_ended_to_edgelist(mat: List[List[List]]) -> List[Tuple[int, int]]:
     # Ensure the matrix is in the expected shape (2, N)
     # assert mat.shape[0] == 2, "Matrix should have 2 rows"
 
@@ -51,16 +55,19 @@ def double_ended_to_edgelist(mat: List[List[List]]) -> List[Tuple[int,int]]:
     # convert unique tuples into unique integers in the edge_list
     return node_tuples_index_to_int(extended_mat)
 
-def node_tuples_index_to_int(extended_mat: List[List[Tuple[int,int]]], cols: int = 0) -> List[Tuple[int,int]]:
+
+def node_tuples_index_to_int(extended_mat: List[List[Tuple[int, int]]], cols: int = 0) -> List[Tuple[int, int]]:
     all_nodes = extended_mat[0] + extended_mat[1]
     unique_nodes = set(node for node in all_nodes)
     if cols != 0:
-        unique_tuples = {node: node[0]*cols + node[1] + 1 for node in unique_nodes}
+        unique_tuples = {node: node[0]*cols +
+                         node[1] + 1 for node in unique_nodes}
     else:
         unique_tuples = {node: i for i, node in enumerate(unique_nodes)}
     indexed_edgelist = [[unique_tuples[node] for node in extended_mat[0]],
                         [unique_tuples[node] for node in extended_mat[1]]]
     return list(zip(*indexed_edgelist))
+
 
 def coalesced_graph(edge_list: np.ndarray) -> nx.Graph:
     # Create a graph from the edge list
@@ -97,11 +104,13 @@ def coalesced_graph(edge_list: np.ndarray) -> nx.Graph:
     H.remove_edges_from(nx.selfloop_edges(H))
     return H
 
+
 def optimize_circular_order(G):
     # Use depth-first search to get a node ordering
     dfs_nodes = list(nx.dfs_preorder_nodes(G))
 
     # Add any remaining nodes (if any) to the end of the list
-    ordered_nodes = dfs_nodes + [node for node in G.nodes() if node not in dfs_nodes]
+    ordered_nodes = dfs_nodes + \
+        [node for node in G.nodes() if node not in dfs_nodes]
 
     return ordered_nodes
