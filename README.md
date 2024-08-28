@@ -1,93 +1,153 @@
-# Network Visualization of Mitochondria Connections
+# Mitochondria Plotter
+
+Mitochondria Plotter is a Python-based tool for analyzing and visualizing mitochondrial networks. It provides functionality for both aspatial and spatial models, offering various analysis and visualization options.
 
 ## Project Overview
-This tool generates a network visualization of mitochondrial connections based on data provided in a .mat file. It is designed to help visualize how each mitochondrion is connected within a given dataset.
+This tool generates network visualizations of mitochondrial connections based on input data. It is designed to help visualize and analyze how mitochondria are connected within a given dataset, supporting both aspatial and spatial models.
 
-## Getting Started
+## Features
+
+- Support for aspatial and spatial mitochondrial network models
+- Network analysis including degree distribution, component sizes, and cycle detection
+- Visualization of mitochondrial networks and lattices
+- Batch processing and analysis of multiple samples
+- Data conversion utilities
+- Generation and visualization of lattice models
+
+## Installation
 
 ### Prerequisites
 - Python 3.x
-- Required Python libraries are listed in the `environment.devenv.yml`. 
+- Required Python libraries are listed in the `environment.devenv.yml`
 
-You can run the following to setup the the package as a conda environment:
+To set up the package as a conda environment:
 ```bash
 conda env create --file=environment.devenv.yml
 pip install -e .
 ```
 
-### Installation
+### Getting Started
 Clone this repository to your local machine:
 ```bash
 git clone https://github.com/JDLanctot/mitochondriaPlotter.git
 cd mitochondriaPlotter
 ```
 
-### Running the Program
-To run the program, navigate to the project directory in your command line interface and execute the following command:
+## Usage
 
-```bash
-python examples\plot.py -f image -l edge_list -t gen_lattice -o C:\Users\Jordi\PycharmProjects\mitochondriaPlotter\examples -n 7 7 -p 0.4 -k 4
+The project includes several example scripts that demonstrate various functionalities:
+
+### Analysis
+
+The analysis scripts process the input data to generate statistical information about the mitochondrial networks. These scripts create CSV files containing various network metrics, which are then used to create plots for figures in the associated research paper. Specifically, the analyses for figures 3b, 3c, 4b, 4c, 4d, 5c, 5d, and 5e are generated using the statistics yielded by these CSV files, with particular parameter inputs for the models in question.
+
+1. Single Network Analysis:
+   ```
+   python examples/analyze.py -f <file_name> -l <load_name> -o <output_dir> [-s <seed>]
+   ```
+
+2. Batch Network Analysis:
+   ```
+   python examples/analyze_many.py -f <file_name> -o <output_dir> -m <model> -N <num_mito> -a <a1> <a2> -t <tau> -d <dimension> [-s <seed>]
+   ```
+
+### Visualization
+
+The visualization scripts generate graphical representations of the mitochondrial networks based on the input data and analysis results. These scripts are used to create network visualizations and statistical plots. The networks shown in figures 5a and 5b are generated using these visualization scripts. Note that the functions `plot_particular_network_from_edgelist_1` through `plot_particular_network_from_edgelist_6` are modified versions of the `plot_particular_network_from_edgelist` function. These modifications were made to manually adjust the layout of connected components for specific networks, bringing them closer together for clearer visualization.
+
+1. Single Network Plot:
+   ```
+   python examples/plot.py -f <file_name> -o <output_dir> -m <model> -l <load_name> [-s <seed>]
+   ```
+
+2. Batch Network Plotting:
+   ```
+   python examples/plot_many.py -f <file_name> -o <output_dir> -m <model> -N <num_mito> -a <a1> <a2> -t <tau> -d <dimension> -S <num_samples> [-s <seed>]
+   ```
+
+3. Specific Network Plot:
+   ```
+   python examples/plot_particular.py -f <file_name> -o <output_dir> -m <model> -N <num_mito> -a <a1> <a2> -t <tau> -d <dimension> -r <run> -b <b1> [-s <seed>]
+   ```
+
+4. Generate and Plot Lattice:
+   ```
+   python examples/plot.py -f <file_name> -o <output_dir> -m gen_lattice -n <rows> <columns> -p <percolation_threshold> -k <lattice_degree> [-s <seed>]
+   ```
+
+### Data Conversion
+
+Convert analysis results to text format:
+```
+python examples/to_text.py -m <model> -t <data_type> -a <a1> <a2> -T <tau> -d <dimension> [-i <input_file>]
 ```
 
-Here you should replace `C:\Users\Jordi\PycharmProjects` with the correction to the path where your repo is located.
+The data conversion utility is designed to transform the output of the analysis scripts into a format that can be easily used by other scripts in the pipeline, particularly those written in other languages like Fortran. This process involves:
 
-Here are the required flags:
+1. Reading the CSV file produced by the analysis scripts.
+2. Extracting relevant columns based on the specified data type (cycles, components, or degrees).
+3. Formatting the data into a simple text-based format.
+4. Writing the formatted data to a new text file.
 
-_save file name_
+The resulting text file contains space-separated values, with each line representing a different data point. The columns typically include:
 
-file_name: str = field(alias='-f', required=True)
+1. The parameter value (b1 for aspatial model, p for spatial model)
+2. A calculated x-value
+3. The relevant data values (e.g., number of cycles, component sizes, or degree distributions)
 
+This format allows for easy parsing and processing by other programs, facilitating integration with existing scientific workflows and analysis pipelines.
 
-_data file name_
+## Models
 
-load_name: str = field(alias='-l', required=True)
+The project supports two main types of models:
 
+1. Aspatial Model: Defined by parameters a1, a2, and b1.
+2. Spatial Model: Defined by dimension (2d or quasi1d) and tau.
 
-_where to save the plot_
+## Input Data Format
 
-output_file: str = field(alias='-o', required=True)
+The input data for both aspatial and spatial models should be provided as a text file (.txt or .dat) containing an edgelist. Each line in the file represents a link in the network, with two columns:
 
+1. The first column is the number of the node from which the link originates.
+2. The second column is the number of the node to which the link connects.
 
-_whether it is a graph or lattice or to gen_lattice (generate a lattice)_
+Example:
+```
+1 2
+3 4
+5 6
+7 8
+...
+97 98
+99 100
+1 80
+2 66
+...
+```
 
-type: str = field(alias='-t', required=False, default='graph')
+This format represents a network where each line defines a connection between two nodes. For instance, "1 2" means there's a link from node 1 to node 2.
 
+## Output
 
-_random seed_
+The scripts generate various outputs including:
+- Network visualizations
+- Probability distribution plots
+- CSV files with analysis results
+- Text files with formatted data for further processing
 
-seed: int = field(alias='-s', default=None, required=False)
+## Dependencies
 
-
-_Size of a lattice_
-
-lattice_size: Tuple[int,int] = field(alias='-n', required=False, default=(5,5))
-
-
-_percolation threshold_
-
-p: float = field(alias='-p', required=False, default=0.4)
-
-
-_lattice degree_
-
-k: int = field(alias='-k', required=False, default=4)
-
-
-## Data Format
-The input data should be a .mat file containing an edgelist. The edgelist is structured as a 2xNx2 matrix, where:
-- The first dimension represents outbound and inbound nodes.
-- N is the number of connections.
-- The second dimension of each N represents:
-  - The mitochondria number.
-  - A 1 or 2 indicating one of the two ends of the mitochondria.
-
-Each connection links one end of a mitochondrion to another, potentially connecting different mitochondria. It is important to note that connections between the two ends of the same mitochondrion are not included in this list.
-
-## Example
-Provide a brief example or a screenshot demonstrating the output of your script.
+- numpy
+- networkx
+- matplotlib
+- pandas
+- scipy
+- simple_parsing
 
 ## Contributing
+
 We welcome contributions to this project. Please feel free to fork the repository and submit pull requests.
 
 ## License
+
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE) file for details.
